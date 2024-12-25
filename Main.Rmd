@@ -1,0 +1,236 @@
+---
+title: "Are Leveraged ETFs Worth It For Young Investor's?"
+author: "Trey Davidson"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r, include=FALSE }
+
+
+update_time_data <- function(data, ticker)
+{
+  data$Year <- as.numeric(substr(data$Date, 1, 4))
+  data$Month <- as.numeric(substr(data$Date, 6, 7))
+  data$DecimalYear <- data$Year + ((data$Month - 1) / 12)
+  data$Ticker <- ticker
+  data$dividendYield <- data$Dividends / data$Open
+  
+  return(data)
+}
+
+update_for_base_year <- function(data1, baseTime) {
+ 
+  base_open <- data1$Open[data1$DecimalYear == baseTime]
+  base_high <- data1$High[data1$DecimalYear == baseTime]
+  base_close <- data1$Close[data1$DecimalYear == baseTime]
+  base_low <- data1$Low[data1$DecimalYear == baseTime]
+  
+  data1$Open <- (data1$Open / base_open) * 100
+  data1$High <- (data1$High / base_high) * 100
+  data1$Close <- (data1$Close / base_close) * 100
+  data1$Low <- (data1$Low / base_low) * 100
+  
+  return(data1)
+}
+
+
+gen_daily_leveraged_returns <- function(prices, leverage) {
+  # Initialize vectors
+  leveraged_returns <- numeric(length(prices))
+  value <- numeric(length(prices))
+  
+  # Set the initial value
+  value[1] <- prices[1]
+  
+  # Loop through each day
+  for (i in 2:length(prices)) {
+    # Calculate the daily leveraged return
+    leveraged_returns[i] <- ((prices[i] - prices[i - 1]) / prices[i - 1]) * leverage
+    
+    
+    value[i] <- value[i - 1] * (1 + leveraged_returns[i])
+  }
+  
+  return(value)
+}
+
+
+```
+
+
+#### Introduction
+
+I am a young investor who is currently interested in saving for retirement. As a young investor traditional investment advise would say I can afford to take on risk as I have a long time horizon to make up losses through income generation and other methods. If I lose all of my investment at the age of 30, I am essentially equal in position to someone who starts saving money in there 30's. [Considering the fact that 31 is the average age to start saving for retirement I wouldn't be alone](https://news.nationwide.com/americas-retirement-voice-reveals-how-much-it-costs-to-delay-retirement/).
+
+
+#### The Decesion
+Since, I am less concerned about risk I have two choices when it comes to magnifying gains. I can either concentrate a portfolio or take on leverage. The issue with concentration is that many biases can come at play that make stock picking hard unlike leverage, which would allow me to keep the diversity of the S&P 500 or QQQ, while also magnifying returns.
+
+I am going to compare some of the top leveraged ETF's to the S&P 500 and QQQ to see which one would be the better investment between 1900-2024.
+
+For the base index's I will use 
+
+[SPY](https://www.ssga.com/us/en/intermediary/etfs/spdr-sp-500-etf-trust-spy) and QQQ[https://www.invesco.com/qqq-etf/en/home.html]
+
+For the leveraged I will use
+
+[UPRO](https://www.proshares.com/our-etfs/leveraged-and-inverse/upro) - 3x Leveraged S&P 500
+[TQQQ](https://www.proshares.com/our-etfs/leveraged-and-inverse/tqqq) - 3x Leveraged QQQ
+[QLD](https://www.proshares.com/our-etfs/leveraged-and-inverse/qld) - 2x Leveraged QQQ
+[SSO](https://www.proshares.com/our-etfs/leveraged-and-inverse/sso) - 3x Leveraged S&P 500
+
+
+Comparing QQQ to QLD we get the following chart.
+
+```{r }
+
+qld_data <-  update_time_data(read.csv("QLD.csv"), "QLD")
+qqq_data <- update_time_data(read.csv("QQQ.csv"), "QQQ")
+
+
+ggplot() +
+  geom_line(data = update_for_base_year(qld_data[qld_data$DecimalYear >= 2006.5, ], 2006.5), aes(x =DecimalYear, y =Open), color = "blue", size = 1) +
+  geom_line(data = update_for_base_year(qqq_data[qqq_data$DecimalYear >= 2006.5, ], 2006.5), aes(x =DecimalYear, y =Open), color = "green", size = 1) +
+  labs(
+    title = "Monthly Prices Over Time",
+    x = "Year",
+    y = "Price"
+  ) +
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+```
+
+
+Green Represents QQQ and Blue represents QLD, which is the 2x leveraged QQQ. Now as you can see QLD performed more then 2x as well as QQQ. This is because of volatility decay. 
+
+
+#### What is Volatility Decay?
+
+This is a very important concept before investing in any leveraged etf. Since leveraged etfs rebalance daily, this means that losses and gains are compounded. For example, I will use the following code to generate some data, so we can see volitality decay in action. 
+
+```{r }
+
+
+dates <- seq(1, 21)
+stockA_values <- numeric(21)
+stockA_values[1] <- 100
+for (i in 2:21) {
+  if (i %% 2 == 0) {  
+    stockA_values[i] <- stockA_values[i-1] + 40
+  } else { 
+    stockA_values[i] <- stockA_values[i-1] - 20
+  }
+}
+stockB_values <- seq(100, by = 5, length.out = 21)
+stocks = data.frame(Date = dates, StockA = stockA_values, StockB = stockB_values)
+
+ggplot(stocks) +
+  geom_line(aes(x = Date, y = StockA, color = "StockA"), size = 1) +
+  geom_line(aes(x = Date, y = StockB, color = "StockB"), size = 1) +
+  labs(
+    title = "StockA and StockB Over Time",
+    x = "Time (Days)",
+    y = "Price",
+    color = "Stocks"  # Legends will show StockA and StockB
+  ) +
+  scale_color_manual(values = c("StockA" = "blue", "StockB" = "green")) +  # Custom colors for each stock
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+stocks$StockA_3xlevered <- gen_daily_leveraged_returns(stocks$StockA, 3)
+stocks$StockB_3xlevered <- gen_daily_leveraged_returns(stocks$StockB, 3)
+
+ggplot(stocks) +
+  geom_line(aes(x = Date, y = StockA_3xlevered, color = "StockA"), size = 1) +
+  geom_line(aes(x = Date, y = StockB_3xlevered, color = "StockB"), size = 1) +
+  labs(
+    title = "StockA and StockB 3x Leveraged Over Time",
+    x = "Time (Days)",
+    y = "Price",
+    color = "Stocks"  # Legends will show StockA and StockB
+  ) +
+  scale_color_manual(values = c("StockA" = "blue", "StockB" = "green")) +  # Custom colors for each stock
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+```
+
+
+
+
+As you can see, stock A's underlying nearly finishes 2x as high as stock B, but because of volatility decay stock B's leveraged version finishes at above stock A's. This is because of the increased variance and re balancing. Re balancing allows gains and losses to increase. To make up a 50% loss you need a 100% gain.This is best sene by showing a stock that is flat. For example, the following
+
+```{r }
+
+stockC <- numeric(20)
+
+for (i in 1:20)
+{
+  if (i %% 2 == 0)
+  {
+    stockC[i] = 100
+  }
+  
+  else
+  {
+    stockC[i] = 110
+  }
+}
+
+stockC_leveraged = gen_daily_leveraged_returns(stockC, 3)
+
+data <- data.frame(
+  Day = 1:20,
+  StockC = stockC,
+  StockC_Leveraged = stockC_leveraged
+)
+
+
+
+ggplot(data, aes(x = Day)) +
+  geom_line(aes(y = StockC, color = "StockC"), size = 1) +
+  geom_line(aes(y = StockC_Leveraged, color = "StockC Leveraged"), size = 1) +
+  labs(
+    title = "StockC vs StockC Leveraged",
+    x = "Day",
+    y = "Value",
+    color = "Legend"
+  ) +
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+```
+
+The underlying asset stays relatively flat, while the leveraged losses over 50%. This is again the long term effect of volatility decay. This means markets where volatility is high are really bad for leveraged etf's and really good for. 
+
+Summary: Volatility decay, the loss of leveraged returns due to increased variance in growth, can significantly impact investments in leveraged ETFs. High volatility without sustained growth leads to substantial losses, while low volatility combined with consistent growth can result in amplified positive returns. Understanding this dynamic is crucial for effectively leveraging these financial instruments.
