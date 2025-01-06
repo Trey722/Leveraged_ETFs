@@ -20,24 +20,26 @@ update_time_data <- function(data, ticker)
 {
   data$Year <- as.numeric(substr(data$Date, 1, 4))
   data$Month <- as.numeric(substr(data$Date, 6, 7))
+  data$Day <- as.numeric(substr(data$Date, 9, 10))
   data$DecimalYear <- data$Year + ((data$Month - 1) / 12)
   data$Ticker <- ticker
-  data$dividendYield <- data$Dividends / data$Open
   
   return(data)
 }
 
 update_for_base_year <- function(data1, baseTime) {
  
-  base_open <- data1$Open[data1$DecimalYear == baseTime]
+  base_Open <- data1$Open[data1$DecimalYear == baseTime]
   base_high <- data1$High[data1$DecimalYear == baseTime]
   base_close <- data1$Close[data1$DecimalYear == baseTime]
   base_low <- data1$Low[data1$DecimalYear == baseTime]
   
-  data1$Open <- (data1$Open / base_open) * 100
-  data1$High <- (data1$High / base_high) * 100
-  data1$Close <- (data1$Close / base_close) * 100
-  data1$Low <- (data1$Low / base_low) * 100
+  
+  data1$Open <- (data1$Open / base_Open) * 10000
+  data1$High <- (data1$High / base_high) * 10000
+  data1$Close <- (data1$Close / base_close) * 10000
+  data1$Low <- (data1$Low / base_low) * 10000
+
   
   return(data1)
 }
@@ -63,6 +65,34 @@ gen_daily_leveraged_returns <- function(prices, leverage) {
   return(value)
 }
 
+calculate_daily_returns <- function(prices) {
+  returns <- numeric(length(prices))
+  returns[1] <- 0  # Corrected spelling here
+  for (i in 2:length(prices)) {
+    returns[i] <- (prices[i] - prices[i - 1]) / prices[i - 1]
+  }
+  
+  return(returns)
+}
+
+
+# Returns as a decimial
+percent_change <- function(new, old)
+{
+  return((new - old) / old)
+}
+
+calculate_CAGR <- function(beg_value, end_value, years) {
+  beg_value <- as.numeric(beg_value)
+  end_value <- as.numeric(end_value)
+  years <- as.numeric(years)
+  
+
+  return ((end_value / beg_value)^(1 / years) - 1)
+}
+
+
+
 
 ```
 
@@ -73,37 +103,60 @@ I am a young investor who is currently interested in saving for retirement. As a
 
 
 #### The Decesion
-Since, I am less concerned about risk I have two choices when it comes to magnifying gains. I can either concentrate a portfolio or take on leverage. The issue with concentration is that many biases can come at play that make stock picking hard unlike leverage, which would allow me to keep the diversity of the S&P 500 or QQQ, while also magnifying returns.
+Since, I am less concerned about risk I have two choices when it comes to magnifying gains, I can either concentrate a portfolio or take on leverage. The issue with concentration is that many biases can come at play that make stock picking hard unlike leverage, which would allow me to keep the diversity of the S&P 500 or QQQ, while also magnifying returns.
 
-I am going to compare some of the top leveraged ETF's to the S&P 500 and QQQ to see which one would be the better investment between 1900-2024.
+I am going to compare leveraged ETFs to regular ETFs
 
-For the base index's I will use 
+Here are some leveraged ETF's that may be included and there relevant websites for my information.
 
-[SPY](https://www.ssga.com/us/en/intermediary/etfs/spdr-sp-500-etf-trust-spy) and QQQ[https://www.invesco.com/qqq-etf/en/home.html]
-
-For the leveraged I will use
-
-[UPRO](https://www.proshares.com/our-etfs/leveraged-and-inverse/upro) - 3x Leveraged S&P 500
-[TQQQ](https://www.proshares.com/our-etfs/leveraged-and-inverse/tqqq) - 3x Leveraged QQQ
-[QLD](https://www.proshares.com/our-etfs/leveraged-and-inverse/qld) - 2x Leveraged QQQ
-[SSO](https://www.proshares.com/our-etfs/leveraged-and-inverse/sso) - 3x Leveraged S&P 500
+[SPY](https://www.ssga.com/us/en/intermediary/etfs/spdr-sp-500-etf-trust-spy) - Top 500 Companies US    
+[QQQ](https://www.invesco.com/qqq-etf/en/home.html) - Top 100 NASDAQ companies tech weighted heavily    
+[UPRO](https://www.proshares.com/our-etfs/leveraged-and-inverse/upro) - 3x Leveraged S&P 500       
+[TQQQ](https://www.proshares.com/our-etfs/leveraged-and-inverse/tqqq) - 3x Leveraged QQQ    
+[QLD](https://www.proshares.com/our-etfs/leveraged-and-inverse/qld) - 2x Leveraged QQQ    
+[SSO](https://www.proshares.com/our-etfs/leveraged-and-inverse/sso) - 3x Leveraged S&P 500    
 
 
-Comparing QQQ to QLD we get the following chart.
 
-```{r }
+# Comapring QQQ to QLD
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
 
 qld_data <-  update_time_data(read.csv("QLD.csv"), "QLD")
 qqq_data <- update_time_data(read.csv("QQQ.csv"), "QQQ")
+qld_data <-  update_for_base_year(qld_data[qld_data$DecimalYear >= 2006.5, ], 2006.5)
+qqq_data <- update_for_base_year(qqq_data[qqq_data$DecimalYear >= 2006.5, ], 2006.5)
+
+qld_CAGR <- calculate_CAGR(qld_data$Open[1], qld_data$Open[nrow(qld_data)], 2025 - 2006.5)
+qqq_CAGR <- calculate_CAGR(qqq_data$Open[1], qqq_data$Open[nrow(qld_data)], 2025- 2006.5)
+
+
+
 
 
 ggplot() +
-  geom_line(data = update_for_base_year(qld_data[qld_data$DecimalYear >= 2006.5, ], 2006.5), aes(x =DecimalYear, y =Open), color = "blue", size = 1) +
-  geom_line(data = update_for_base_year(qqq_data[qqq_data$DecimalYear >= 2006.5, ], 2006.5), aes(x =DecimalYear, y =Open), color = "green", size = 1) +
+  geom_line(
+    data = update_for_base_year(qld_data[qld_data$DecimalYear >= 2006.5, ], 2006.5), 
+    aes(x = DecimalYear, y = Close, color = "QLD"), 
+    size = 1
+  ) +
+  geom_line(
+    data = update_for_base_year(qqq_data[qqq_data$DecimalYear >= 2006.5, ], 2006.5), 
+    aes(x = DecimalYear, y = Close, color = "QQQ"), 
+    size = 1
+  ) +
   labs(
-    title = "Monthly Prices Over Time",
-    x = "Year",
-    y = "Price"
+    title = "QLD vs QQQ",
+    x = "Time (Days)",
+    y = "Price",
+    color = "Stocks"  # This label will appear in the legend
+  ) +
+  scale_color_manual(
+    values = c("QLD" = "blue", "QQQ" = "green"),
+    labels = c(
+      paste("QLD (CAGR:", round(qld_CAGR * 100, 2), "%)"),
+      paste("QQQ (CAGR:", round(qqq_CAGR * 100, 2), "%)")
+    )
   ) +
   theme_minimal(base_size = 15) +
   theme(
@@ -113,17 +166,82 @@ ggplot() +
   )
 
 
+qld_data$daily_returns <- c(0, diff(log(qld_data$Close)))
+qqq_data$daily_returns <- c(0, diff(log(qqq_data$Close)))
 ```
 
+In our initial backtest, QLD (the 2x leveraged QQQ) significantly outperforms QQQ. However, before drawing any conclusions, it is crucial to assess whether these observed differences could be attributed to random chance. To determine the appropriate statistical test, we need to address two key questions:
 
-Green Represents QQQ and Blue represents QLD, which is the 2x leveraged QQQ. Now as you can see QLD performed more then 2x as well as QQQ. This is because of volatility decay. 
+   1. Are the monthly returns independent?
+   2. Are the monthly returns normally distributed?
+   
+Regarding question 1, a typical approach would be to use a chi-square test to examine the independence of the returns. However, since QLD is a leveraged derivative of QQQ, we acknowledge that QLD's performance is inherently dependent on QQQ's returns. As such, we will account for this relationship in our analysis.
+
+For question 2, it is important to first visualize the distribution of returns. A histogram can reveal the shape and skewness of the returns, providing insights into their distribution. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
+
+ggplot() +
+  geom_histogram(data = qld_data, aes(x = daily_returns), 
+                 fill = "blue", alpha = 0.5, bins = 50) + 
+  geom_histogram(data = qqq_data, aes(x = daily_returns), 
+                 fill = "green", alpha = 0.5, bins = 50) + 
+  labs(
+    title = "Distribution of Monthly Returns: QLD vs QQQ",
+    x = "Daily Return",
+    y = "Frequency",
+    fill = "Stock"
+  ) +
+  scale_fill_manual(values = c("blue", "green"), labels = c("QLD", "QQQ")) +
+  theme_minimal()
+
+```
+
+Based on our observations, the returns are not symmetrical and show a rightward bias, which is favorable for investors, as it indicates a higher frequency of positive returns compared to negative ones. To statistically prove our observation we will use the Shaprio-Wilks test. 
 
 
-#### What is Volatility Decay?
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
 
-This is a very important concept before investing in any leveraged etf. Since leveraged etfs rebalance daily, this means that losses and gains are compounded. For example, I will use the following code to generate some data, so we can see volitality decay in action. 
+test1 <- shapiro.test(qld_data$daily_returns)
 
-```{r }
+
+test2 <- shapiro.test(qqq_data$daily_returns)
+
+
+cat("QLD Test - W:", test1$statistic, "p-value:", test1$p.value, "\n")
+
+
+cat("QQQ Test - W:", test2$statistic, "p-value:", test2$p.value, "\n")
+
+
+```
+
+The results of the Shapiro-Wilk test confirm our visual analysis, indicating that neither of these distributions is normally distributed. Therefore, we cannot use the t-test, as it assumes normality. Instead, we will use the Wilcoxon test, which does not assume normality or independence of observations
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
+
+
+test_result <- wilcox.test(qld_data$daily_returns, qqq_data$daily_returns)
+
+
+cat("Test - W:", test_result$statistic, "p-value:", test_result$p.value, "\n")
+
+
+
+
+```
+
+The Wilcoxon test shows that there is only a 3% probability that the observed differences in returns between QLD and QQQ are due to randomness. This provides sufficient evidence to conclude that QLD had statistically significantly higher returns from 2008 to 2024.
+
+Looking at the returns, we see that an investment of 10K in QQQ grows to 152,537.6, while the same 10K in QLD grows to 547,665.7, which is more than 5 times the return of QQQ, not just 2x. This raises the question: how does a 2x leveraged ETF generate nearly 5x the return of the underlying? 
+
+#### 2x leverage results in 5x the results! 
+
+
+
+Let's compare stock A and Stock B 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
 
 
 dates <- seq(1, 21)
@@ -156,7 +274,6 @@ ggplot(stocks) +
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
-
 stocks$StockA_3xlevered <- gen_daily_leveraged_returns(stocks$StockA, 3)
 stocks$StockB_3xlevered <- gen_daily_leveraged_returns(stocks$StockB, 3)
 
@@ -177,15 +294,15 @@ ggplot(stocks) +
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
-
 ```
 
 
 
 
-As you can see, stock A's underlying nearly finishes 2x as high as stock B, but because of volatility decay stock B's leveraged version finishes at above stock A's. This is because of the increased variance and re balancing. Re balancing allows gains and losses to increase. To make up a 50% loss you need a 100% gain.This is best sene by showing a stock that is flat. For example, the following
+As you can see, stock A's underlying nearly finishes 2x as high as stock B, but because of volatility decay stock B's leveraged version finishes at above stock A's. This is because of the increased variance and re balancing. Re balancing allows gains and losses to stack, which along with compound interest can lead to significantly better results or significantly worse results over a period of time. 
 
-```{r }
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
 
 stockC <- numeric(20)
 
@@ -193,14 +310,15 @@ for (i in 1:20)
 {
   if (i %% 2 == 0)
   {
-    stockC[i] = 100
+    stockC[i] = 90 + i
   }
   
   else
   {
-    stockC[i] = 110
+    stockC[i] = 111 + i
   }
 }
+
 
 stockC_leveraged = gen_daily_leveraged_returns(stockC, 3)
 
@@ -210,11 +328,9 @@ data <- data.frame(
   StockC_Leveraged = stockC_leveraged
 )
 
-
-
 ggplot(data, aes(x = Day)) +
   geom_line(aes(y = StockC, color = "StockC"), size = 1) +
-  geom_line(aes(y = StockC_Leveraged, color = "StockC Leveraged"), size = 1) +
+  geom_line(aes(y = StockC_Leveraged, color = "Stock C Leveraged"), size = 1) +
   labs(
     title = "StockC vs StockC Leveraged",
     x = "Day",
@@ -229,8 +345,268 @@ ggplot(data, aes(x = Day)) +
   )
 
 
+
+
 ```
 
-The underlying asset stays relatively flat, while the leveraged losses over 50%. This is again the long term effect of volatility decay. This means markets where volatility is high are really bad for leveraged etf's and really good for. 
+This results in flat markets working against the buyer. As for example, this stock increases to 140, which is a 40% increase over 10 time periods, but if you invested in the leveraged etf, you would finish with $11 a 89% loss. This makes it critically important that whatever you invest in has low volatility and consistent returns. 
 
-Summary: Volatility decay, the loss of leveraged returns due to increased variance in growth, can significantly impact investments in leveraged ETFs. High volatility without sustained growth leads to substantial losses, while low volatility combined with consistent growth can result in amplified positive returns. Understanding this dynamic is crucial for effectively leveraging these financial instruments.
+
+# SPXL vs SPXL
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
+
+
+
+SPXL <- update_time_data(read.csv("SPXL.csv"), "SPXL")
+SPXTR <- update_time_data(read.csv("^SP500TR.csv", header = TRUE), "SPXTR")
+
+
+
+
+base_year <- 2008 + (11/12)
+SPXL <- update_for_base_year(SPXL[SPXL$DecimalYear >= base_year, ], base_year)
+SPXTR <- update_for_base_year(SPXTR[SPXTR$DecimalYear >= base_year, ], base_year)
+
+SPXL$index <- SPXL$Open / SPXL$Open[1] * 10000
+SPXTR$index <- SPXTR$Open / SPXTR$Open[1] * 10000
+
+ggplot() +
+  # Plot SPXL data (normalized)
+  geom_line(data = SPXL, aes(x = DecimalYear, y = index, color = "SPXL"), size = 1) +
+  
+  geom_line(data = SPXTR, aes(x = DecimalYear, y = index, color = "SPXTR"), size = 1) +
+  # Add labels and theme
+  labs(
+    title = "Log price of SPXL vs SPXTR",
+    x = "Year",
+    y = "Normalized Close Price (Base December 2008)",
+    color = "ETF"
+  ) +
+  theme_minimal() +
+  scale_color_manual(values = c( "SPXL" = "red", "SPXTR" = "green")) +
+  theme(legend.position = "top") + scale_y_log10()
+
+```
+
+
+If you would have invested 10,000 USD into SPXL on the day it came as opposed to investing 10,000 USD into SPY. In December 2024, you would have 101,159.01, meanwhile, with SPXL you would have 825,886.21 USD. You would have 8x the amount of the money. This is significantly greater then the 3x performance that the index name would suggest. 
+
+
+# A look at 2008-2020. 
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
+
+
+US_GNP_data <-read.csv("GNP.csv")
+
+US_GNP_data$Year <- as.numeric(substr(US_GNP_data$observation_date, 1, 4))
+US_GNP_data$Month <- as.numeric(substr(US_GNP_data$observation_date, 6, 7))
+
+US_GNP_data$DecimalYear <- US_GNP_data$Year +( (US_GNP_data$Month - 1) / 12 )
+
+
+base_year_GNP <- US_GNP_data$GNP[US_GNP_data$DecimalYear == 2008.75]
+
+
+US_GNP_data$index <- US_GNP_data$GNP / base_year_GNP * 100
+
+US_GNP_data$growth <- 0 
+
+for (i in 2:nrow(US_GNP_data))
+{
+  US_GNP_data$growth[i] <- percent_change(US_GNP_data$GNP[i], US_GNP_data$GNP[i - 1])
+}
+
+US_GNP_data_post <- US_GNP_data[US_GNP_data$DecimalYear > 2008.75, ]
+
+US_GNP_data_COVID <- US_GNP_data[US_GNP_data$DecimalYear > 2008.75 & US_GNP_data$DecimalYear < 2020, ]
+
+US_GNP_data_pre <- US_GNP_data[US_GNP_data$DecimalYear < 2008.75, ]
+
+
+
+
+
+ggplot() +
+  geom_boxplot(data = US_GNP_data_COVID, aes(x = "2008-2020", y = growth, fill = "2008-2020"), alpha = 0.7) +
+  geom_boxplot(data = US_GNP_data_post, aes(x = "2008-2024", y = growth, fill = "2008-2024"), alpha = 0.7) +
+  geom_boxplot(data = US_GNP_data, aes(x = "1947-2024", y = growth, fill = "1947-2024"), alpha = 0.7) +
+  labs(
+    title = "Boxplot of US GNP Growth Including COVID",
+    x = "Period",
+    y = "GNP Growth Rate",
+    fill = "Period"
+  ) +
+  scale_fill_manual(values = c("2008-2024" = "blue", "2008-2020" = "orange", "1947-2024" = "green")) +
+  theme_minimal() +
+  annotate("text", x = 3.5, y = max(US_GNP_data$growth, na.rm = TRUE), label = "GNP data comes from FRED", hjust = 1, vjust = -1, size = 3)
+
+
+US_GNP_data_combined <- rbind(
+  data.frame(growth = US_GNP_data_COVID$growth, period = "2008-2020"),
+  data.frame(growth = US_GNP_data_post$growth, period = "2008-2024"),
+  data.frame(growth = US_GNP_data_pre$growth, period = "1947-2024")
+)
+
+
+
+```
+
+
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
+
+
+US_AAA_yield <-read.csv("AAA.csv")
+
+US_AAA_yield$Year <- as.numeric(substr(US_AAA_yield$observation_date, 1, 4))
+US_AAA_yield$Month <- as.numeric(substr(US_AAA_yield$observation_date, 6, 7))
+US_AAA_yield$DecimalYear <- 0
+US_AAA_yield$DecimalYear <- US_AAA_yield$Year + (US_AAA_yield$Month - 1) / 12
+
+ US_AAA_yield_post<- US_AAA_yield[US_AAA_yield$DecimalYear > 2008.75, ]
+US_AAA_yield_pre <-  US_AAA_yield[US_AAA_yield$DecimalYear < 2008.75, ]
+
+ggplot() +
+  
+  geom_density(data = US_AAA_yield_post, aes(x = AAA, fill = "2008-2024"), alpha = 0.7) +
+  geom_density(data = US_AAA_yield_pre, aes(x = AAA, fill = "Pre-2008"), alpha = 0.7) +
+  
+  labs(
+    title = "Density Plot of US AAA Bond Yields",
+    x = "AAA Yield",
+    y = "Density",
+    fill = "Period"
+  ) +
+  theme_minimal() +
+  scale_fill_manual(values = c("2008-2024" = "blue","Pre-2008" = "red"))
+
+
+t_test_result <- t.test(US_AAA_yield_post$AAA, US_AAA_yield_pre$AAA, alternative = "less")
+
+print(t_test_result)
+
+
+```
+
+While GNP growth fell behind the average 1947-2024, which is the furthest the Federal Reserve publishes it. You will notice that between 2008-2020, which is when SPXL performed best. There was less negative years of GNP growth. This combined with the statistical  significant lower yields for AAA yields tell us that it was cheap for the top companies to borrow money and that there was significant growth in the production of resources owned by the United States. Now looking at these two charts. I expect SPXL to still outperform S&P 500 in the long run do to the fact that GNP on average is quite high between 1947-2024. Higher then it was duirng the post COVID expeirnce. 
+
+
+# The backtest of the centry
+
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
+
+SPY_data <- read.csv("^GSPC_daily.csv")
+SPY_data <- update_time_data(SPY_data, "^GSPC")
+
+
+
+SPY_data$med <- (SPY_data$High + SPY_data$Low) / 2 
+SPY_data$index <- SPY_data$med / SPY_data$med[1] * 100
+SPY_data$index_3x <- numeric(nrow(SPY_data))
+SPY_data$index_3x[1] <- 100
+SPY_data$percent_change <- 0
+for (i in 2:nrow(SPY_data)) {
+  SPY_data$percent_change[i] <- percent_change(SPY_data$index[i], SPY_data$index[i - 1])
+}
+SPY_data$percent_change_3x <- SPY_data$percent_change * 3
+
+
+
+
+
+SPXTR_old <- read.csv("SPXTR_old.csv")
+
+SPXTR_old$Price <- as.numeric(gsub(",", "", SPXTR_old$Amount))
+
+SPXTR_old$DecimalYear <- SPXTR_old$Year + (SPXTR_old$Month - 1) / 12
+
+SPXTR_old$index <-SPXTR_old$Price / SPXTR_old$Price[1] * 100
+
+
+fees <- 1 - (0.009 / 252)
+
+
+for (i in 2:nrow(SPY_data)) {
+  SPY_data$index_3x[i] <- SPY_data$index_3x[i - 1] * (1 + SPY_data$percent_change_3x[i]) * fees
+}
+
+for (i in 2:nrow(SPY_data)) {
+  SPY_data$index_3x[i] <- SPY_data$index_3x[i - 1] * (1 + SPY_data$percent_change_3x[i]) * fees
+}
+
+SPY_data$DecimalYear <- SPY_data$DecimalYear  + (as.numeric(substr(SPY_data$Date, 9, 10)) / 31)
+
+
+library(dplyr)
+
+SPY_data_monthly <- SPY_data %>%
+  group_by(Year, Month) %>%
+  filter(Day == min(Day)) %>%
+  ungroup()
+
+beginning_value_index <- SPY_data_monthly$index[1]
+
+ending_value_index <- SPY_data_monthly$index[nrow(SPY_data_monthly)]
+distinct_count <- SPY_data %>% summarize(count = n_distinct(SPY_data$Year))
+
+begginning_value_index_3x <- SPY_data_monthly$index_3x[1]
+ending_value_index_3x <- SPY_data_monthly$index_3x[nrow(SPY_data_monthly)]
+
+begginning_value_index_SPXTR <- SPXTR_old$index[1]
+ending_value_index_SPXTR <- SPXTR_old$index[nrow(SPXTR_old)]
+
+
+CAGR_index <- (ending_value_index - beginning_value_index) ^ (1 / distinct_count$count[1]) - 1
+CAGR_index_3x <- (ending_value_index_3x - begginning_value_index_3x) ^ (1 /distinct_count$count[1]) - 1
+CAGR_index_spxtr <- (ending_value_index_SPXTR - begginning_value_index_SPXTR) ^  (1 /distinct_count$count[1]) - 1
+
+CAGR_index_label <- paste("S&P 500 (CAGR:", round(CAGR_index * 100, 2), "%)")
+CAGR_index_3x_label <- paste("Leveraged S&P 500 (CAGR:", round(CAGR_index_3x * 100, 2), "%)")
+CAGR_SPXTR_label <- paste("Total Return S&P (CAGR:", round(CAGR_index_spxtr * 100, 2), "%)")
+
+
+
+ggplot() +
+  geom_line(data = SPY_data_monthly, aes(x = DecimalYear, y = index_3x, color = "Leveraged S&P 500"), size = 1) + 
+  geom_line(data = SPY_data_monthly, aes(x = DecimalYear, y = index, color = "S&P 500"), size = 1) +
+  labs(
+    title = "SPY Index vs SPXTR Index",
+    x = "Year",
+    y = "Index Value",
+    color = "Legend"
+  ) +
+  scale_color_manual(values = c("Leveraged S&P 500" = "blue", "S&P 500" = "red"),
+                     labels = c(CAGR_index_3x_label, CAGR_index_label)) +
+  theme_minimal()
+
+
+ggplot() +
+  geom_line(data = SPY_data_monthly, aes(x = DecimalYear, y = index_3x, color = "Leveraged S&P 500"), size = 1) + 
+  geom_line(data = SPXTR_old, aes(x = DecimalYear, y = index, color = "S&P 500"), size = 1) +
+  labs(
+    title = "SPY Index vs SPXTR Index",
+    x = "Year",
+    y = "Index Value",
+    color = "Legend"
+  ) +
+  scale_color_manual(values = c("Leveraged S&P 500" = "blue", "S&P 500" = "red"),
+                     labels = c(CAGR_index_3x_label, CAGR_SPXTR_label)) +
+  theme_minimal()
+
+
+```
+
+Looking at the first chart makes the leveraged S&P 500 look good , but once you adjust for dividends, then the total return S&P 500 blows the leveraged out of water. 
+
+
+
+
+
