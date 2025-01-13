@@ -105,9 +105,9 @@ I am a young investor who is currently interested in saving for retirement. As a
 #### The Decesion
 Since, I am less concerned about risk I have two choices when it comes to magnifying gains, I can either concentrate a portfolio or take on leverage. The issue with concentration is that many biases can come at play that make stock picking hard unlike leverage, which would allow me to keep the diversity of the S&P 500 or QQQ, while also magnifying returns.
 
-I am going to compare leveraged ETFs to regular ETFs
 
-Here are some leveraged ETF's that may be included and there relevant websites for my information.
+
+Here are some leveraged ETF's that may be included and there relevant websites for any additional information you may be looking for. 
 
 [SPY](https://www.ssga.com/us/en/intermediary/etfs/spdr-sp-500-etf-trust-spy) - Top 500 Companies US    
 [QQQ](https://www.invesco.com/qqq-etf/en/home.html) - Top 100 NASDAQ companies tech weighted heavily    
@@ -238,9 +238,7 @@ Looking at the returns, we see that an investment of 10K in QQQ grows to 152,537
 #### 2x leverage results in 5x the results! 
 
 
-
-Let's compare stock A and Stock B 
-
+This happens due to the way percentages stack on top of each other. For example, lets compare two stocks. One that goes up by 50% and then drops 15%, and a stock that goes up 10%. 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
 
 
@@ -249,12 +247,17 @@ stockA_values <- numeric(21)
 stockA_values[1] <- 100
 for (i in 2:21) {
   if (i %% 2 == 0) {  
-    stockA_values[i] <- stockA_values[i-1] + 40
+    stockA_values[i] <- stockA_values[i-1] * 1.5
   } else { 
-    stockA_values[i] <- stockA_values[i-1] - 20
+    stockA_values[i] <- stockA_values[i-1] * 0.85
   }
 }
-stockB_values <- seq(100, by = 5, length.out = 21)
+stockB_values <- 100
+for (i in 2:21)
+{
+  stockB_values[i] <- stockB_values[i - 1] * 1.1 
+}
+
 stocks = data.frame(Date = dates, StockA = stockA_values, StockB = stockB_values)
 
 ggplot(stocks) +
@@ -298,24 +301,32 @@ ggplot(stocks) +
 
 
 
+Upon simulating the performance of these stocks, it becomes clear that while Stock A outperformed Stock B in absolute terms, the leveraged derivative of Stock B exhibited significantly superior performance. The simplest expiation why is that a 50% loss requires a 100% gain to make up, meanwhile a 50% gain only takes a 33.333% loss to destroy. This simple concept is extremely important when dealing with leveraged high risk investments.
 
-As you can see, stock A's underlying nearly finishes 2x as high as stock B, but because of volatility decay stock B's leveraged version finishes at above stock A's. This is because of the increased variance and re balancing. Re balancing allows gains and losses to stack, which along with compound interest can lead to significantly better results or significantly worse results over a period of time. 
+Let's look at how this simple relationship plays out in our simulation. Stock A normally would have a cycle of a 50% gain followed by a 15% loss, which would result in an approximate 12.19%, which is better then Stock B, which only had a 10% compounding result. This means that we would expect that Stock A would have a 36.57% aproxmit compounding gain, while Stock B would only have 30%, but in reality a 150% gain and 45% loss only results in an approximate 17.26% compounding gain. This means that growth isn't the only thing that matters with leveraged products, but by how much it grows is also important. This is one of the main reasons why all leveraged products will say that they are only there for day traders as in the long run they will not have 3x returns. Now there are some advantages to this model, which is that circuit breakers will prevent the stock from ever hitting that 33.333% loss that is required to take our position to 0. Meanwhile, if we took leverage over a longer period lets say 6 months. If SPY fell by 33.333% over those 3 months our position would go to 0.
+
+Now the worst part about this day to day resetting model isn't that losses stack up as if SPY falls by 20%, you already are expecting to lose a lot of money, but what happens during flat markets. 
+
+To get an idea of what can happen lets simulate a stock that rises by 11% and falls by 10%. 
+
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
 
 stockC <- numeric(20)
 
-for (i in 1:20)
+stockC <- 100
+
+for (i in 2:20)
 {
   if (i %% 2 == 0)
   {
-    stockC[i] = 90 + i
+    stockC[i] = stockC[i - 1] * 1.1
   }
   
   else
   {
-    stockC[i] = 111 + i
+    stockC[i] = stockC[i - 1] * 0.9
   }
 }
 
@@ -327,6 +338,8 @@ data <- data.frame(
   StockC = stockC,
   StockC_Leveraged = stockC_leveraged
 )
+
+
 
 ggplot(data, aes(x = Day)) +
   geom_line(aes(y = StockC, color = "StockC"), size = 1) +
@@ -349,10 +362,11 @@ ggplot(data, aes(x = Day)) +
 
 ```
 
-This results in flat markets working against the buyer. As for example, this stock increases to 140, which is a 40% increase over 10 time periods, but if you invested in the leveraged etf, you would finish with $11 a 89% loss. This makes it critically important that whatever you invest in has low volatility and consistent returns. 
+As you can see the underlying finishes at roughly 100, the leveraged version loses over 50% of its value during this time. In this regard, leveraged ETFs are kind of like an option where both volatility and price matters. 
 
+# SPXTR vs SPXL
 
-# SPXL vs SPXL
+Let's compare the total return of the S&P 500 to the 3x leveraged S&P 500 daily. Since inception, which was post 2008 SPY has not had much volatility to the point where shorting the VIX was a popular strategy all the way up until Volmageddon, which was when several inverse VIX ETPs collapsed in 2018.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
 
@@ -368,8 +382,8 @@ base_year <- 2008 + (11/12)
 SPXL <- update_for_base_year(SPXL[SPXL$DecimalYear >= base_year, ], base_year)
 SPXTR <- update_for_base_year(SPXTR[SPXTR$DecimalYear >= base_year, ], base_year)
 
-SPXL$index <- SPXL$Open / SPXL$Open[1] * 10000
-SPXTR$index <- SPXTR$Open / SPXTR$Open[1] * 10000
+SPXL$index <- SPXL$Open / SPXL$Open[1] * 100000
+SPXTR$index <- SPXTR$Open / SPXTR$Open[1] * 100000
 
 ggplot() +
   # Plot SPXL data (normalized)
@@ -387,118 +401,17 @@ ggplot() +
   scale_color_manual(values = c( "SPXL" = "red", "SPXTR" = "green")) +
   theme(legend.position = "top") + scale_y_log10()
 
-```
-
-
-If you would have invested 10,000 USD into SPXL on the day it came as opposed to investing 10,000 USD into SPY. In December 2024, you would have 101,159.01, meanwhile, with SPXL you would have 825,886.21 USD. You would have 8x the amount of the money. This is significantly greater then the 3x performance that the index name would suggest. 
-
-
-# A look at 2008-2020. 
-
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
-
-
-US_GNP_data <-read.csv("GNP.csv")
-
-US_GNP_data$Year <- as.numeric(substr(US_GNP_data$observation_date, 1, 4))
-US_GNP_data$Month <- as.numeric(substr(US_GNP_data$observation_date, 6, 7))
-
-US_GNP_data$DecimalYear <- US_GNP_data$Year +( (US_GNP_data$Month - 1) / 12 )
-
-
-base_year_GNP <- US_GNP_data$GNP[US_GNP_data$DecimalYear == 2008.75]
-
-
-US_GNP_data$index <- US_GNP_data$GNP / base_year_GNP * 100
-
-US_GNP_data$growth <- 0 
-
-for (i in 2:nrow(US_GNP_data))
-{
-  US_GNP_data$growth[i] <- percent_change(US_GNP_data$GNP[i], US_GNP_data$GNP[i - 1])
-}
-
-US_GNP_data_post <- US_GNP_data[US_GNP_data$DecimalYear > 2008.75, ]
-
-US_GNP_data_COVID <- US_GNP_data[US_GNP_data$DecimalYear > 2008.75 & US_GNP_data$DecimalYear < 2020, ]
-
-US_GNP_data_pre <- US_GNP_data[US_GNP_data$DecimalYear < 2008.75, ]
-
-
-
-
-
-ggplot() +
-  geom_boxplot(data = US_GNP_data_COVID, aes(x = "2008-2020", y = growth, fill = "2008-2020"), alpha = 0.7) +
-  geom_boxplot(data = US_GNP_data_post, aes(x = "2008-2024", y = growth, fill = "2008-2024"), alpha = 0.7) +
-  geom_boxplot(data = US_GNP_data, aes(x = "1947-2024", y = growth, fill = "1947-2024"), alpha = 0.7) +
-  labs(
-    title = "Boxplot of US GNP Growth Including COVID",
-    x = "Period",
-    y = "GNP Growth Rate",
-    fill = "Period"
-  ) +
-  scale_fill_manual(values = c("2008-2024" = "blue", "2008-2020" = "orange", "1947-2024" = "green")) +
-  theme_minimal() +
-  annotate("text", x = 3.5, y = max(US_GNP_data$growth, na.rm = TRUE), label = "GNP data comes from FRED", hjust = 1, vjust = -1, size = 3)
-
-
-US_GNP_data_combined <- rbind(
-  data.frame(growth = US_GNP_data_COVID$growth, period = "2008-2020"),
-  data.frame(growth = US_GNP_data_post$growth, period = "2008-2024"),
-  data.frame(growth = US_GNP_data_pre$growth, period = "1947-2024")
-)
-
-
 
 ```
 
 
+If you would have invested 100K into SPXL at inception, you would have quickly second guessed your option as it collapsed almost to 50K, but if you would have stuck around you would have 7,654,218, meanwhile if you would have just invested in the S&P 500 you would have had 1,011,590. 
 
+As I stated before the simulation though, this happened during a time when shorting VIX was a popular stratgey. Now to see if its better then the S&P 500 it would be nice to stretch our simulation very far back as this would allow it to play over different periods. Luckily with Yahoo Finances Historical S&P 500, we can simulate from before the great depression. 
 
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
-
-
-US_AAA_yield <-read.csv("AAA.csv")
-
-US_AAA_yield$Year <- as.numeric(substr(US_AAA_yield$observation_date, 1, 4))
-US_AAA_yield$Month <- as.numeric(substr(US_AAA_yield$observation_date, 6, 7))
-US_AAA_yield$DecimalYear <- 0
-US_AAA_yield$DecimalYear <- US_AAA_yield$Year + (US_AAA_yield$Month - 1) / 12
-
- US_AAA_yield_post<- US_AAA_yield[US_AAA_yield$DecimalYear > 2008.75, ]
-US_AAA_yield_pre <-  US_AAA_yield[US_AAA_yield$DecimalYear < 2008.75, ]
-
-ggplot() +
-  
-  geom_density(data = US_AAA_yield_post, aes(x = AAA, fill = "2008-2024"), alpha = 0.7) +
-  geom_density(data = US_AAA_yield_pre, aes(x = AAA, fill = "Pre-2008"), alpha = 0.7) +
-  
-  labs(
-    title = "Density Plot of US AAA Bond Yields",
-    x = "AAA Yield",
-    y = "Density",
-    fill = "Period"
-  ) +
-  theme_minimal() +
-  scale_fill_manual(values = c("2008-2024" = "blue","Pre-2008" = "red"))
-
-
-t_test_result <- t.test(US_AAA_yield_post$AAA, US_AAA_yield_pre$AAA, alternative = "less")
-
-print(t_test_result)
-
-
-```
-
-While GNP growth fell behind the average 1947-2024, which is the furthest the Federal Reserve publishes it. You will notice that between 2008-2020, which is when SPXL performed best. There was less negative years of GNP growth. This combined with the statistical  significant lower yields for AAA yields tell us that it was cheap for the top companies to borrow money and that there was significant growth in the production of resources owned by the United States. Now looking at these two charts. I expect SPXL to still outperform S&P 500 in the long run do to the fact that GNP on average is quite high between 1947-2024. Higher then it was duirng the post COVID expeirnce. 
 
 
 # The backtest of the centry
-
-
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
@@ -510,13 +423,7 @@ SPY_data <- update_time_data(SPY_data, "^GSPC")
 
 SPY_data$med <- (SPY_data$High + SPY_data$Low) / 2 
 SPY_data$index <- SPY_data$med / SPY_data$med[1] * 100
-SPY_data$index_3x <- numeric(nrow(SPY_data))
-SPY_data$index_3x[1] <- 100
-SPY_data$percent_change <- 0
-for (i in 2:nrow(SPY_data)) {
-  SPY_data$percent_change[i] <- percent_change(SPY_data$index[i], SPY_data$index[i - 1])
-}
-SPY_data$percent_change_3x <- SPY_data$percent_change * 3
+SPY_data$index_3x <- gen_daily_leveraged_returns(SPY_data$index, 3)
 
 
 
@@ -531,34 +438,21 @@ SPXTR_old$DecimalYear <- SPXTR_old$Year + (SPXTR_old$Month - 1) / 12
 SPXTR_old$index <-SPXTR_old$Price / SPXTR_old$Price[1] * 100
 
 
-fees <- 1 - (0.009 / 252)
 
 
-for (i in 2:nrow(SPY_data)) {
-  SPY_data$index_3x[i] <- SPY_data$index_3x[i - 1] * (1 + SPY_data$percent_change_3x[i]) * fees
-}
 
-for (i in 2:nrow(SPY_data)) {
-  SPY_data$index_3x[i] <- SPY_data$index_3x[i - 1] * (1 + SPY_data$percent_change_3x[i]) * fees
-}
 
 SPY_data$DecimalYear <- SPY_data$DecimalYear  + (as.numeric(substr(SPY_data$Date, 9, 10)) / 31)
 
 
-library(dplyr)
 
-SPY_data_monthly <- SPY_data %>%
-  group_by(Year, Month) %>%
-  filter(Day == min(Day)) %>%
-  ungroup()
+beginning_value_index <- SPY_data$index[1]
 
-beginning_value_index <- SPY_data_monthly$index[1]
-
-ending_value_index <- SPY_data_monthly$index[nrow(SPY_data_monthly)]
+ending_value_index <- SPY_data$index[nrow(SPY_data)]
 distinct_count <- SPY_data %>% summarize(count = n_distinct(SPY_data$Year))
 
-begginning_value_index_3x <- SPY_data_monthly$index_3x[1]
-ending_value_index_3x <- SPY_data_monthly$index_3x[nrow(SPY_data_monthly)]
+begginning_value_index_3x <- SPY_data$index_3x[1]
+ending_value_index_3x <- SPY_data$index_3x[nrow(SPY_data)]
 
 begginning_value_index_SPXTR <- SPXTR_old$index[1]
 ending_value_index_SPXTR <- SPXTR_old$index[nrow(SPXTR_old)]
@@ -575,8 +469,8 @@ CAGR_SPXTR_label <- paste("Total Return S&P (CAGR:", round(CAGR_index_spxtr * 10
 
 
 ggplot() +
-  geom_line(data = SPY_data_monthly, aes(x = DecimalYear, y = index_3x, color = "Leveraged S&P 500"), size = 1) + 
-  geom_line(data = SPY_data_monthly, aes(x = DecimalYear, y = index, color = "S&P 500"), size = 1) +
+  geom_line(data = SPY_data, aes(x = DecimalYear, y = index_3x, color = "Leveraged S&P 500"), size = 1) + 
+  geom_line(data = SPY_data, aes(x = DecimalYear, y = index, color = "S&P 500"), size = 1) +
   labs(
     title = "SPY Index vs SPXTR Index",
     x = "Year",
@@ -589,7 +483,7 @@ ggplot() +
 
 
 ggplot() +
-  geom_line(data = SPY_data_monthly, aes(x = DecimalYear, y = index_3x, color = "Leveraged S&P 500"), size = 1) + 
+  geom_line(data = SPY_data, aes(x = DecimalYear, y = index_3x, color = "Leveraged S&P 500"), size = 1) + 
   geom_line(data = SPXTR_old, aes(x = DecimalYear, y = index, color = "S&P 500"), size = 1) +
   labs(
     title = "SPY Index vs SPXTR Index",
@@ -597,16 +491,177 @@ ggplot() +
     y = "Index Value",
     color = "Legend"
   ) +
-  scale_color_manual(values = c("Leveraged S&P 500" = "blue", "S&P 500" = "red"),
-                     labels = c(CAGR_index_3x_label, CAGR_SPXTR_label)) +
+  scale_color_manual(
+    values = c("Leveraged S&P 500" = "blue", "S&P 500" = "red"),
+    labels = c(CAGR_index_3x_label, CAGR_SPXTR_label)
+  ) +
   theme_minimal()
 
 
 ```
 
-Looking at the first chart makes the leveraged S&P 500 look good , but once you adjust for dividends, then the total return S&P 500 blows the leveraged out of water. 
+Looking at the first chart the leveraged S&P 500 looks extremely good as it has a 2% higher CAGR over a period of 100 years, but this model only accounts for price changes. When you invest in S&P 500 you get both the capital appreciation and the dividends, which then are reivested. Leveraged ETFs miss out on these dividends as they usually use futures for leverage. This means that, while you would have gotten a nice 13.28% CAGR, the S&P 500 would have had a 15.14% CAGR. 
+
+
+# What if we pick something with low dividends
+
+Our last simulation was not very good for leveraged ETFs, so instead lets look at QQQ. QQQ is the top 100 companies listed on the NASDAQ, which is tech heavy. Its dividend yield is about 0.5% where SPY is about 1.21%. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
+
+QQQ_daily <- read.csv("QQQ_daily.csv")
+
+QQQ_3x <- gen_daily_leveraged_returns(QQQ_daily$Open, 3)
+
+
+library(ggplot2)
+
+# Assuming QQQ_daily and QQQ_3x are already defined
+# Create a data frame for plotting
+plot_data <- data.frame(
+  Date = as.Date(QQQ_daily$Date),  # Convert Date column to Date type
+  QQQ_Open = QQQ_daily$Open,
+  QQQ_3x = QQQ_3x
+)
+
+# Create the plot
+ggplot(plot_data, aes(x = Date)) +
+  geom_line(aes(y = QQQ_Open, color = "QQQ Daily Open"), size = 1) +
+  geom_line(aes(y = QQQ_3x, color = "QQQ 3x Leveraged"), size = 1) +
+  labs(title = "QQQ Daily vs QQQ 3x Leveraged Returns",
+       x = "Date",
+       y = "Price",
+       color = "Legend") +
+  theme_minimal()
+
+```
+
+
+In this instance, the 3x leverage performance does well, but then collpases during the .com buble, and is never able to recover. This raises the question of whether lower leverage could have better retruns then higher leverage as you lose less capital during bad years. 
+
+Let's compare a QQQ to leveraged ETFs that leverage between 1-5. 
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+
+# Function to calculate CAGR
+calculate_cagr <- function(prices, n_years) {
+  final_value <- tail(prices, 1)
+  initial_value <- head(prices, 1)
+  cagr <- ((final_value / initial_value)^(1 / n_years)) - 1
+  return(cagr)
+}
+
+# Load data
+QQQ_daily <- read.csv("QQQ_daily.csv")
+
+# Calculate the number of years in the dataset
+n_years <- as.numeric(difftime(max(as.Date(QQQ_daily$Date)), min(as.Date(QQQ_daily$Date)), units = "days")) / 365
+
+# Generate leveraged returns for leverages 1 through 5 and calculate CAGR for each
+cagrs <- c()
+for (leverage in 1:5) {
+  column_name <- paste0("QQQ_", leverage, "x")
+  QQQ_daily[[column_name]] <- gen_daily_leveraged_returns(QQQ_daily$Open, leverage)
+  cagrs <- c(cagrs, calculate_cagr(QQQ_daily[[column_name]], n_years))
+}
+
+# Prepare data for plotting
+plot_data <- data.frame(
+  Date = as.Date(QQQ_daily$Date),
+  QQQ_Open = QQQ_daily$Open,
+  QQQ_1x = QQQ_daily$QQQ_1x,
+  QQQ_2x = QQQ_daily$QQQ_2x,
+  QQQ_3x = QQQ_daily$QQQ_3x,
+  QQQ_4x = QQQ_daily$QQQ_4x,
+  QQQ_5x = QQQ_daily$QQQ_5x
+)
+
+# Create the plot
+ggplot(plot_data, aes(x = Date)) +
+  geom_line(aes(y = QQQ_Open, color = paste0("QQQ Daily Open (CAGR: ", round(cagrs[1] * 100, 2), "%)")), size = 1) +
+  geom_line(aes(y = QQQ_1x, color = paste0("QQQ 1x Leveraged (CAGR: ", round(cagrs[1] * 100, 2), "%)")), size = 1) +
+  geom_line(aes(y = QQQ_2x, color = paste0("QQQ 2x Leveraged (CAGR: ", round(cagrs[2] * 100, 2), "%)")), size = 1) +
+  geom_line(aes(y = QQQ_3x, color = paste0("QQQ 3x Leveraged (CAGR: ", round(cagrs[3] * 100, 2), "%)")), size = 1) +
+  geom_line(aes(y = QQQ_4x, color = paste0("QQQ 4x Leveraged (CAGR: ", round(cagrs[4] * 100, 2), "%)")), size = 1) +
+  geom_line(aes(y = QQQ_5x, color = paste0("QQQ 5x Leveraged (CAGR: ", round(cagrs[5] * 100, 2), "%)")), size = 1) +
+  labs(title = "QQQ Daily vs Leveraged Returns (1x to 5x)",
+       x = "Date",
+       y = "Price",
+       color = "Legend") +
+  theme_minimal()
 
 
 
+```
 
+The 2x leverage etf does the best followed by the 1x leverage, then the 3x leverage, and the rest finish near 0.  Now you may be wondering what happens if we do this with SPY. 
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.show='hold'}
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+
+# Assuming SPY_data is already loaded
+SPY_prices <- SPY_data$med
+
+# Generate leveraged returns for SPY and store them
+SPY_leveraged <- data.frame(Date = as.Date(SPY_data$Date))
+
+for (leverage in 1:5) {
+  column_name <- paste0("SPY_", leverage, "x")
+  SPY_leveraged[[column_name]] <- gen_daily_leveraged_returns(SPY_prices, leverage)
+}
+
+# Create the plot without CAGR
+ggplot(SPY_leveraged, aes(x = Date)) +
+  geom_line(aes(y = SPY_1x, color = "SPY 1x Leveraged"), size = 1) +
+  geom_line(aes(y = SPY_2x, color = "SPY 2x Leveraged"), size = 1) +
+  geom_line(aes(y = SPY_3x, color = "SPY 3x Leveraged"), size = 1) +
+  geom_line(aes(y = SPY_4x, color = "SPY 4x Leveraged"), size = 1) +
+  geom_line(aes(y = SPY_5x, color = "SPY 5x Leveraged"), size = 1) +
+  labs(title = "SPY Leveraged Returns (1x to 5x)",
+       x = "Date",
+       y = "Price",
+       color = "Legend") +
+  theme_minimal()
+
+
+# Calculate daily returns for SPY_2x and SPY_3x
+# Calculate daily returns for SPY_2x and SPY_3x
+SPY_leveraged <- SPY_leveraged %>%
+  mutate(
+    SPY_2x_return = c(NA, diff(SPY_2x) / lag(SPY_2x)[-1]),
+    SPY_3x_return = c(NA, diff(SPY_3x) / lag(SPY_3x)[-1])
+  )
+
+# Remove the NA values caused by the lag difference
+returns_data <- SPY_leveraged %>%
+  filter(!is.na(SPY_2x_return) & !is.na(SPY_3x_return))
+
+# Perform the Wilcoxon test
+wilcox_test_result <- wilcox.test(returns_data$SPY_2x_return, returns_data$SPY_3x_return)
+
+
+wilcox_test_result <- wilcox.test(returns_data$SPY_2x_return, returns_data$SPY_3x_return)
+
+
+cat("P-value:", wilcox_test_result$p.value, "\n")
+
+```
+
+
+As you can 
+
+
+The 2x leveraged ETF slightly outperforms the 3x leveraged ETF. To verify whether the difference in returns is statistically significant, we performed a Wilcoxon test. The test yielded a very small p-value, indicating that the likelihood of the observed difference being due to random chance is extremely low. Therefore, it is highly probable that the returns are genuinely different.
+
+# Conclusion
+Over the long run, leveraged ETFs replicating the S&P 500 tend to under perform the regular S&P 500. This under performance is primarily due to missing out on the compounding effect of dividends. Consequently, leveraged ETFs should not replace regular investing but may serve as an alternative to long-term, out-of-the-money call options in a portfolio. However, as companies increasingly shift towards stock buybacks instead of paying dividends, leveraged ETFs could potentially become an effective way to maximize returns over an extended period.
 
